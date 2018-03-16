@@ -1,0 +1,22 @@
+{
+  "name": "dltiles",
+  "version": "1.0.0",
+  "description": "download tiles",
+  "main": "dltiles.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hfu/dltiles.git"
+  },
+  "author": "",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/hfu/dltiles/issues"
+  },
+  "homepage": "https://github.com/hfu/dltiles#readme",
+  "dependencies": {
+    "dotenv": "^5.0.1"
+  }
+}

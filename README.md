@@ -4,6 +4,7 @@ download tiles
 ## Usage
 ```
 $ vi .env
-$ node dltiles.js | node store.js
+$ node dltiles.js
 ```
+store.js is no longer necessary, to be deleted.
 

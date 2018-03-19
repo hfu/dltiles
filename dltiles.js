@@ -41,33 +41,36 @@ const getTile = async v => {
 if (cluster.isMaster) {
   let stat = {}
   new MBTiles(e.MBTILES, (err, mbtiles) => {
+    let mbtiles_open = true
     if (err) console.error(err)
-    for (let i = 0; i < numCPUs; i++) {
-      const worker = cluster.fork()
-      worker.on('message', v => {
-        stat[v.status] = stat[v.status] ? stat[v.status] + 1 : 1
-        console.error(`${v.z}/${v.x}/${v.y} ${JSON.stringify(stat)}`)
-        const json = JSON.parse(v.buf)
-        if(json && json.type === 'Buffer') {
-          /*
-          mbtiles.startWriting(err => {
-            if (err) console.error(err)
+    process.on('beforeExit', code => {
+      if(mbtiles_open) {
+        mbtiles.stopWriting(err => {
+          if (err) console.error(err)
+          mbtiles_open = false
+          console.log(`${e.MBTILES} successfully closed.`)
+        })
+      }
+    })
+    mbtiles.startWriting(err => {
+      if (err) console.error(err)
+      for (let i = 0; i < numCPUs; i++) {
+        const worker = cluster.fork()
+        worker.on('message', v => {
+          stat[v.status] = stat[v.status] ? stat[v.status] + 1 : 1
+          console.error(`${v.z}/${v.x}/${v.y} ${JSON.stringify(stat)}`)
+          const json = JSON.parse(v.buf)
+          if(json && json.type === 'Buffer') {
             mbtiles.putTile(v.z, v.x, v.y, 
               Buffer.from(json.data), err => {
               if (err) console.error(err)
-              mbtiles.stopWriting(err => {
-                if (err) console.error(err)
-                worker.send(g.next()) 
-              })
             })
-          })
-          */
-          console.log(JSON.stringify(v))
-        }
+          }
+          worker.send(g.next())
+        })
         worker.send(g.next())
-      })
-      worker.send(g.next())
-    }
+      }
+    })
   })
 } else {
   process.on('message', v => {

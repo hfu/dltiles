@@ -9,12 +9,28 @@ const cluster = require('cluster')
 const numCPUs = require('os').cpus().length
 const e = process.env
 
+let getUrl
+switch(e.ORDER) {
+  case 'ZXY':
+    getUrl = (z, x, y) => {
+      return `${e.MU}/${z}/${x}/${y}.${e.EXT}`
+    }
+    break
+  case 'ZYX':
+    getUrl = (z, x, y) => {
+      return `${e.MU}/${z}/${y}/${x}.${e.EXT}`
+    }
+    break
+  default:
+    throw `ORDER ${e.ORDER} not implemented.`
+}
+
 const g = function* gfn() {
   for (let z = Number(e.MZ); z <= Number(e.ZZ); z++) {
     const dz = z - Number(e.MZ), m = 2 ** dz
     for (let x = Number(e.MX) * m; x < (Number(e.MX) + 1) * m; x++) {
       for (let y = Number(e.MY) * m; y < (Number(e.MY) + 1) * m; y++) {
-        yield {z: z, x: x, y: y, url: `${e.MU}/${z}/${y}/${x}.${e.EXT}`}
+        yield {z: z, x: x, y: y, url: getUrl(z, x, y)}
       }
     }
   }
@@ -39,7 +55,7 @@ const getTile = async v => {
 }
 
 if (cluster.isMaster) {
-  let stat = {}
+  let stat = {all: 0}
   new MBTiles(e.MBTILES, (err, mbtiles) => {
     let mbtiles_open = true
     if (err) console.error(err)
@@ -57,8 +73,11 @@ if (cluster.isMaster) {
       for (let i = 0; i < numCPUs; i++) {
         const worker = cluster.fork()
         worker.on('message', v => {
+          stat.all += 1
           stat[v.status] = stat[v.status] ? stat[v.status] + 1 : 1
-          console.error(`${v.z}/${v.x}/${v.y} ${JSON.stringify(stat)}`)
+          if (stat.all % 40 === 0) {
+            console.error(`${v.z}/${v.x}/${v.y} ${JSON.stringify(stat)}`)
+          }
           const json = JSON.parse(v.buf)
           if(json && json.type === 'Buffer') {
             mbtiles.putTile(v.z, v.x, v.y, 
